@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 pub const URL: &str = "http://localhost:3000";
 
@@ -27,14 +26,14 @@ pub struct CommandResult {
     /// The left-most column on the map is position `0`.
     ///
     /// The right-most column is `mapWidth - 1`.
-    pub x: i8,
+    pub x: i16,
 
     /// The Y (vertical) position of your player.
     ///
     /// The top row of the map is position `0`.
     ///
     /// The bottom row is <span class="code">mapHeight - 1</span>.
-    pub y: i8,
+    pub y: i16,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -49,12 +48,12 @@ pub struct RegisterResult {
     /// How many tiles wide the map is.
     ///
     /// Default 30
-    pub map_height: i8,
+    pub map_height: i16,
 
     /// How many tiles high the map is.
     ///
     /// Default 50
-    pub map_width: i8,
+    pub map_width: i16,
 
     /// Your player's name.
     ///
@@ -69,31 +68,59 @@ pub struct RegisterResult {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PlayerLocation {
     pub is_it: bool,
-    pub x: i8,
-    pub y: i8,
+    pub x: i16,
+    pub y: i16,
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Clone, Deserialize, PartialEq)]
 pub enum MoveDir {
     Up,
     Down,
     Left,
     Right,
+    None,
 }
 
-impl From<MoveDir> for String {
-    fn from(value: MoveDir) -> Self {
+impl From<&String> for MoveDir {
+    fn from(value: &String) -> Self {
         match value {
-            MoveDir::Up => "up".to_string(),
-            MoveDir::Down => "down".to_string(),
-            MoveDir::Left => "left".to_string(),
-            MoveDir::Right => "right".to_string(),
+            s if s == "up" => MoveDir::Up,
+            s if s == "down" => MoveDir::Down,
+            s if s == "left" => MoveDir::Left,
+            s if s == "right" => MoveDir::Right,
+            _ => MoveDir::None,
         }
     }
 }
 
 impl Display for MoveDir {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_string())
+        let s = match self {
+            MoveDir::Up => "up",
+            MoveDir::Down => "down",
+            MoveDir::Left => "left",
+            MoveDir::Right => "right",
+            MoveDir::None => "look",
+        };
+        write!(f, "{s}")
+    }
+}
+
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct Pos(pub i16, pub i16);
+
+impl Pos {
+    pub fn distance(&self, other: &Pos) -> u16 {
+        self.0.abs_diff(other.0) + self.1.abs_diff(other.1)
+    }
+
+    pub fn successors(&self) -> Vec<(Pos, u16)> {
+        let &Pos(x, y) = self;
+        vec![
+            (Pos(x + 1, y), 1),
+            (Pos(x - 1, y), 1),
+            (Pos(x, y + 1), 1),
+            (Pos(x, y - 1), 1),
+        ]
     }
 }

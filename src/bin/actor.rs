@@ -1,12 +1,13 @@
 use anyhow::anyhow;
+use pathfinding::prelude::astar;
 use serde::Deserialize;
 use tokio::time::{interval, Duration};
-use xor_tag::{CommandResult, MoveDir, RegisterResult, URL};
+use xor_tag::{CommandResult, MoveDir, Pos, RegisterResult, URL};
 
 #[derive(Debug)]
 struct ActorState {
     game: Option<RegisterResult>,
-    retries: i8,
+    retries: i16,
 }
 
 #[tokio::main]
@@ -37,7 +38,7 @@ pub async fn main() -> anyhow::Result<()> {
             // reset retries after each success
             state.retries = 2;
         };
-        println!("{state:#?}");
+        print_board(&state.game);
     }
 }
 
@@ -54,6 +55,7 @@ async fn take_action(state: &mut ActorState) -> anyhow::Result<()> {
         Action::Register => {
             println!("registering");
             let new_state = register().await?;
+            println!("{new_state:#?}");
             state.game = Some(new_state);
         }
         Action::Look => {
@@ -66,12 +68,12 @@ async fn take_action(state: &mut ActorState) -> anyhow::Result<()> {
                 }
             }
         }
-        Action::Move(_) => {
-            println!("moving");
+        Action::Move(dir) => {
+            println!("moving {dir}");
             match &mut state.game {
-                None => return Err(anyhow!("Cannot look before registering as a player")),
+                None => return Err(anyhow!("Cannot move before registering as a player")),
                 Some(s) => {
-                    let new_partial = look(s.id).await?;
+                    let new_partial = mv(s.id, dir).await?;
                     s.inner = new_partial;
                 }
             }
@@ -91,12 +93,27 @@ async fn take_action(state: &mut ActorState) -> anyhow::Result<()> {
 }
 
 fn determine_action(state: &mut ActorState) -> Action {
-    if state.game.is_none() && state.retries >= 0 {
-        Action::Register
-    } else if state.retries < 0 {
-        Action::Quit
-    } else {
-        Action::Look
+    match &state.game {
+        None => {
+            if state.retries >= 0 {
+                Action::Register
+            } else {
+                Action::Quit
+            }
+        }
+        Some(game) => {
+            let dir = if game.inner.is_it {
+                chase_dir(game)
+            } else {
+                flee_dir(game)
+            };
+
+            if dir == MoveDir::None {
+                Action::Look
+            } else {
+                Action::Move(dir)
+            }
+        }
     }
 }
 
@@ -148,4 +165,136 @@ async fn look(id: u16) -> anyhow::Result<CommandResult> {
 /// the player and return the final state that the player would have seen.
 async fn quit(id: u16) -> anyhow::Result<CommandResult> {
     call(&format!("{URL}/quit/{id}")).await
+}
+
+fn chase_dir(game: &RegisterResult) -> MoveDir {
+    let me = Pos(game.inner.x, game.inner.y);
+    let target = closest_player(game, &me);
+    let path = astar(
+        &me,
+        |p| p.successors(), // TODO occupied tiles
+        |p| p.distance(&target),
+        |p| *p == target,
+    );
+    dir_from_path(&me, path)
+}
+
+fn flee_dir(game: &RegisterResult) -> MoveDir {
+    let me = Pos(game.inner.x, game.inner.y);
+    let it = it_player_pos(game);
+    let target = max_square(game, &it);
+    let path = astar(
+        &me,
+        |p| p.successors(), // TODO occupied tiles
+        |p| p.distance(&target),
+        |p| *p == target,
+    );
+    dir_from_path(&me, path)
+}
+
+fn dir_from_path(me: &Pos, path: Option<(Vec<Pos>, u16)>) -> MoveDir {
+    match path {
+        None => MoveDir::None,
+        Some((steps, _)) => {
+            // steps[0] is current square, steps[1] is target
+            // if length is 1, we're on optimal square already
+            if steps.len() == 1 {
+                return MoveDir::None;
+            }
+
+            let delta = (steps[1].0 - me.0, steps[1].1 - me.1);
+            match delta {
+                (1, 0) => MoveDir::Right,
+                (-1, 0) => MoveDir::Left,
+                (0, 1) => MoveDir::Up,
+                (0, -1) => MoveDir::Down,
+                _ => MoveDir::None,
+            }
+        }
+    }
+}
+
+fn max_square(game: &RegisterResult, it: &Pos) -> Pos {
+    let mut target = Pos(game.inner.x, game.inner.y);
+    let mut max = 0;
+    for x in 0..game.map_width {
+        for y in 0..game.map_height {
+            let pt = Pos(x, y);
+            let d = pt.distance(it);
+            if d > max {
+                max = d;
+                target = pt;
+            }
+        }
+    }
+    target.clone()
+}
+
+fn it_player_pos(game: &RegisterResult) -> Pos {
+    match game.inner.players.iter().find(|p| p.is_it) {
+        Some(p) => Pos(p.x, p.y),
+        None => Pos(game.inner.x, game.inner.y),
+    }
+}
+
+fn closest_player(game: &RegisterResult, me: &Pos) -> Pos {
+    let mut closest = None;
+    for p in &game.inner.players {
+        let d = me.distance(&Pos(p.x, p.y));
+        match closest {
+            None => closest = Some((p.x, p.y, d)),
+            Some(c) => {
+                if d < c.2 {
+                    closest = Some((p.x, p.y, d))
+                }
+            }
+        }
+    }
+    match closest {
+        Some(c) => Pos(c.0, c.1),
+        None => Pos(game.inner.x, game.inner.y), // stand still if no one exists
+    }
+}
+
+fn print_board(maybe_game: &Option<RegisterResult>) {
+    match maybe_game {
+        None => println!("no board"),
+        Some(game) => {
+            let mut s = "|".to_string();
+            s.push_str("-".repeat(game.map_width as usize).as_str());
+            s.push_str("|");
+            println!("{s}");
+
+            for y in (0..game.map_height).rev() {
+                s = "|".to_string();
+                for x in 0..game.map_width {
+                    s.push_str(symbol(game, x, y).as_str());
+                }
+                s.push_str("|");
+                println!("{s}");
+            }
+
+            s = "|".to_string();
+            s.push_str("-".repeat(game.map_width as usize).as_str());
+            s.push_str("|");
+            println!("{s}");
+        }
+    }
+}
+
+// TODO: TUI
+fn symbol(game: &RegisterResult, x: i16, y: i16) -> String {
+    let is_me = game.inner.x == x && game.inner.y == y;
+    let is_other = game.inner.players.iter().find(|p| p.x == x && p.y == y);
+    if is_me && game.inner.is_it {
+        "X".to_string()
+    } else if is_other.is_some_and(|p| p.is_it) {
+        "X".to_string()
+    } else if is_me {
+        "M".to_string()
+    } else if is_other.is_some() {
+        "O".to_string()
+    } else {
+        " ".to_string()
+    }
 }

@@ -49,9 +49,9 @@ async fn look(data: Data<AppState>, pid: Path<u16>) -> impl Responder {
 }
 
 #[get("/move{direction}/{pid}")]
-async fn movement(data: Data<AppState>, path: Path<(MoveDir, u16)>) -> impl Responder {
+async fn movement(data: Data<AppState>, path: Path<(String, u16)>) -> impl Responder {
     let mut state = data.inner.lock().await;
-    if state.move_player(&path.1, &path.0).is_err() {
+    if state.move_player(&path.1, &MoveDir::from(&path.0)).is_err() {
         return HttpResponse::InternalServerError().finish();
     };
 
@@ -80,23 +80,30 @@ pub struct Player {
     id: u16,
     name: String,
     is_it: bool,
-    x: i8,
-    y: i8,
+    x: i16,
+    y: i16,
 }
 
 #[derive(Debug)]
 pub struct GameState {
     players: Vec<Player>,
-    width: i8,
-    height: i8,
+    width: i16,
+    height: i16,
 }
 
 impl GameState {
     pub fn new() -> Self {
         Self {
-            players: Vec::new(),
-            width: 50,
-            height: 30,
+            players: vec![Player {
+                id: 1000,
+                name: "Player 1000".into(),
+                is_it: true,
+                x: 0,
+                y: 0,
+            }],
+            // players: Vec::new(),
+            width: 10,
+            height: 10,
         }
     }
 
@@ -113,6 +120,7 @@ impl GameState {
         self.players.push(player.clone());
         player
     }
+
     pub fn move_player(&mut self, id: &u16, dir: &MoveDir) -> anyhow::Result<()> {
         let player_index = self.get_player_index(id);
         match player_index {
@@ -122,10 +130,12 @@ impl GameState {
                     MoveDir::Up => (0, 1),
                     MoveDir::Down => (0, -1),
                     MoveDir::Left => (-1, 0),
-                    MoveDir::Right => (0, 1),
+                    MoveDir::Right => (1, 0),
+                    MoveDir::None => (0, 0),
                 };
 
                 let (nx, ny) = (self.players[idx].x + dx, self.players[idx].y + dy);
+                // TODO: tagging
                 if !self.occupied(nx, ny) {
                     self.players[idx].x = nx;
                     self.players[idx].y = ny;
@@ -182,7 +192,7 @@ impl GameState {
             .collect()
     }
 
-    fn random_unoccupied(&self) -> (i8, i8) {
+    fn random_unoccupied(&self) -> (i16, i16) {
         let mut rng = rand::thread_rng();
         loop {
             let x = rng.gen_range(0..self.width);
@@ -193,7 +203,7 @@ impl GameState {
         }
     }
 
-    fn occupied(&self, x: i8, y: i8) -> bool {
+    fn occupied(&self, x: i16, y: i16) -> bool {
         self.players.iter().any(|p| p.x == x && p.y == y)
     }
 }
