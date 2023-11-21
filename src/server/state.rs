@@ -2,7 +2,8 @@ use anyhow::anyhow;
 use rand::Rng;
 use tokio::sync::RwLock;
 
-use crate::actor::{FullState, MoveDir, PartialState, PlayerLocation};
+use crate::actor::MoveDir;
+use crate::api::{FullResponse, PartialResponse, PlayerLocation};
 
 #[derive(Debug)]
 pub struct AppState {
@@ -89,18 +90,18 @@ impl GameState {
         }
     }
 
-    pub fn respond_to_player(&self, id: u16) -> Option<FullState> {
+    pub fn respond_to_player(&self, id: u16) -> Option<FullResponse> {
         let map_height = self.height;
         let map_width = self.width;
         let players = self.get_other_players(id);
         let current_player = self.get_player(id)?;
 
-        Some(FullState {
+        Some(FullResponse {
             id: current_player.id,
             name: current_player.name.clone(),
             map_height,
             map_width,
-            inner: PartialState {
+            inner: PartialResponse {
                 is_it: current_player.is_it,
                 players,
                 x: current_player.x,
@@ -109,7 +110,7 @@ impl GameState {
         })
     }
 
-    pub fn remove_player(&mut self, id: u16) -> Option<FullState> {
+    pub fn remove_player(&mut self, id: u16) -> Option<FullResponse> {
         let response = self.respond_to_player(id);
         let idx = self.get_player_index(id)?;
         self.players.remove(idx);

@@ -6,6 +6,8 @@ use std::io;
 mod routes;
 mod state;
 
+pub const URL: &str = "http://localhost:3000";
+
 pub async fn serve() -> io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
@@ -20,7 +22,7 @@ pub async fn serve() -> io::Result<()> {
             .service(routes::movement)
             .service(routes::quit)
     })
-    .bind(("127.0.0.1", 3000))?
+    .bind(("localhost", 3000))?
     .run()
     .await
 }

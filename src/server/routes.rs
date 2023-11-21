@@ -2,7 +2,8 @@ use actix_web::web::{Data, Path};
 use actix_web::{get, HttpResponse, Responder};
 
 use crate::actor::MoveDir;
-use crate::server::state::AppState;
+
+use super::state::AppState;
 
 #[get("/register")]
 pub async fn register(data: Data<AppState>) -> impl Responder {

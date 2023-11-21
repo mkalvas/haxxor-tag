@@ -1,90 +1,25 @@
 use anyhow::anyhow;
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use core::fmt;
 use pathfinding::prelude::astar;
-use ratatui::style::Color;
-use ratatui::widgets::canvas::{Painter, Shape};
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use serde::Deserialize;
 
-use super::api::{self, FullState, MoveDir, Pos};
+use crate::api::{ApiClient, FullResponse};
 
-pub type SyncedActor = Arc<RwLock<ActorState>>;
+use super::position::Pos;
+use super::state::ActorState;
 
-#[derive(Debug, Clone)]
-pub struct ActorState {
-    pub game: Option<FullState>,
-    pub retries: i16,
-    pub dead: bool,
-}
-
-impl Default for ActorState {
-    fn default() -> Self {
-        Self {
-            game: None,
-            retries: 2,
-            dead: false,
-        }
-    }
-}
-
-impl ActorState {
-    pub fn new_synced() -> SyncedActor {
-        Arc::new(RwLock::new(Self::default()))
-    }
-
-    pub fn handle_input(&mut self, key: KeyEvent) -> anyhow::Result<()> {
-        match key.code {
-            KeyCode::Char('q') => self.dead = true,
-            KeyCode::Char('c') => {
-                if key.modifiers == KeyModifiers::CONTROL {
-                    self.dead = true;
-                }
-            }
-            _ => {} // all other keys unbound
-        };
-        Ok(())
-    }
-
-    pub fn on_tick(&mut self) {}
-}
-
-impl Shape for ActorState {
-    fn draw(&self, painter: &mut Painter) {
-        if let Some(game) = &self.game {
-            if let Some((x, y)) = painter.get_point(game.inner.x as f64, game.inner.y as f64) {
-                let color = if game.inner.is_it {
-                    Color::Red
-                } else {
-                    Color::Cyan
-                };
-                painter.paint(x, y, color);
-            }
-            for player in &game.inner.players {
-                if let Some((x, y)) = painter.get_point(player.x as f64, player.y as f64) {
-                    let color = if player.is_it {
-                        Color::Red
-                    } else {
-                        Color::Cyan
-                    };
-                    painter.paint(x, y, color);
-                };
-            }
-        }
-    }
-}
-
-enum Action {
+pub enum Action {
     Look,
     Move(MoveDir),
     Register,
 }
 
-pub async fn try_quit(state: &mut ActorState) -> anyhow::Result<()> {
+pub async fn try_quit(client: &ApiClient, state: &mut ActorState) -> anyhow::Result<()> {
     // println!("quitting");
     match &mut state.game {
         None => Err(anyhow!("Cannot quit before registering as a player")),
         Some(s) => {
-            let new_partial = api::quit(s.id).await?;
+            let new_partial = client.quit(s.id).await?;
             s.inner = new_partial;
             Ok(())
         }
@@ -92,11 +27,11 @@ pub async fn try_quit(state: &mut ActorState) -> anyhow::Result<()> {
 }
 
 /// Determine the best course of action and take it.
-pub async fn take_action(state: &mut ActorState) -> anyhow::Result<()> {
+pub async fn take_action(client: &ApiClient, state: &mut ActorState) -> anyhow::Result<()> {
     match determine_action(state) {
         Action::Register => {
             // println!("registering");
-            let new_state = api::register().await?;
+            let new_state = client.register().await?;
             // println!("{new_state:#?}");
             state.game = Some(new_state);
         }
@@ -105,7 +40,7 @@ pub async fn take_action(state: &mut ActorState) -> anyhow::Result<()> {
             match &mut state.game {
                 None => return Err(anyhow!("Cannot look before registering as a player")),
                 Some(s) => {
-                    let new_partial = api::look(s.id).await?;
+                    let new_partial = client.look(s.id).await?;
                     s.inner = new_partial;
                 }
             }
@@ -115,7 +50,7 @@ pub async fn take_action(state: &mut ActorState) -> anyhow::Result<()> {
             match &mut state.game {
                 None => return Err(anyhow!("Cannot move before registering as a player")),
                 Some(s) => {
-                    let new_partial = api::mv(s.id, dir).await?;
+                    let new_partial = client.mv(s.id, dir).await?;
                     s.inner = new_partial;
                 }
             }
@@ -143,7 +78,7 @@ fn determine_action(state: &ActorState) -> Action {
     }
 }
 
-fn chase_dir(game: &FullState) -> MoveDir {
+fn chase_dir(game: &FullResponse) -> MoveDir {
     let me = Pos(game.inner.x, game.inner.y);
     let target = closest_player(game, &me);
     let path = astar(
@@ -155,7 +90,7 @@ fn chase_dir(game: &FullState) -> MoveDir {
     dir_from_path(&me, path)
 }
 
-fn flee_dir(game: &FullState) -> MoveDir {
+fn flee_dir(game: &FullResponse) -> MoveDir {
     let me = Pos(game.inner.x, game.inner.y);
     let it = it_player_pos(game);
     let target = max_square(game, &it);
@@ -190,7 +125,7 @@ fn dir_from_path(me: &Pos, path: Option<(Vec<Pos>, u16)>) -> MoveDir {
     }
 }
 
-fn max_square(game: &FullState, it: &Pos) -> Pos {
+fn max_square(game: &FullResponse, it: &Pos) -> Pos {
     let mut target = Pos(game.inner.x, game.inner.y);
     let mut max = 0;
     for x in 0..game.map_width {
@@ -206,14 +141,14 @@ fn max_square(game: &FullState, it: &Pos) -> Pos {
     target
 }
 
-fn it_player_pos(game: &FullState) -> Pos {
+fn it_player_pos(game: &FullResponse) -> Pos {
     match game.inner.players.iter().find(|p| p.is_it) {
         Some(p) => Pos(p.x, p.y),
         None => Pos(game.inner.x, game.inner.y),
     }
 }
 
-fn closest_player(game: &FullState, me: &Pos) -> Pos {
+fn closest_player(game: &FullResponse, me: &Pos) -> Pos {
     let mut closest = None;
     for p in &game.inner.players {
         let d = me.distance(&Pos(p.x, p.y));
@@ -229,5 +164,39 @@ fn closest_player(game: &FullState, me: &Pos) -> Pos {
     match closest {
         Some(c) => Pos(c.0, c.1),
         None => Pos(game.inner.x, game.inner.y), // stand still if no one exists
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum MoveDir {
+    Up,
+    Down,
+    Left,
+    Right,
+    None,
+}
+
+impl From<&String> for MoveDir {
+    fn from(value: &String) -> Self {
+        match value {
+            s if s == "up" => Self::Up,
+            s if s == "down" => Self::Down,
+            s if s == "left" => Self::Left,
+            s if s == "right" => Self::Right,
+            _ => Self::None,
+        }
+    }
+}
+
+impl fmt::Display for MoveDir {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Up => "up",
+            Self::Down => "down",
+            Self::Left => "left",
+            Self::Right => "right",
+            Self::None => "look",
+        };
+        write!(f, "{s}")
     }
 }

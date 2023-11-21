@@ -9,8 +9,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::game;
 use crate::actor::{ActorState, SyncedActor};
+
+use super::game;
 
 pub fn setup_panic_hook() {
     let original_hook = std::panic::take_hook();
