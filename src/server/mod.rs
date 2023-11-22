@@ -12,7 +12,7 @@ pub async fn serve() -> anyhow::Result<()> {
         .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    let state = GameState::new();
+    let state = GameState::new_server_state();
     let router = routes::build_router(state);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));

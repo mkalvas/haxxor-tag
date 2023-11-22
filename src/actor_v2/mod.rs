@@ -8,6 +8,7 @@ mod actions;
 mod position;
 mod state;
 
+pub use actions::MoveDir;
 pub use state::{ActorState, SyncedActor};
 
 pub async fn run() -> anyhow::Result<()> {

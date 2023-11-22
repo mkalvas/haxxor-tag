@@ -10,11 +10,11 @@ use tower_http::classify::ServerErrorsFailureClass;
 use tower_http::trace::TraceLayer;
 use tracing::Span;
 
-use crate::actor::MoveDir;
+use crate::api::MoveDir;
 
-use super::state::AppState;
+use super::state::ServerState;
 
-pub fn build_router(state: AppState) -> Router {
+pub fn build_router(state: ServerState) -> Router {
     Router::new()
         .route("/register", get(register))
         .route("/look/:pid", get(look))
@@ -56,7 +56,7 @@ impl WithMiddleware for Router {
     }
 }
 
-pub async fn register(State(data): State<AppState>) -> impl IntoResponse {
+pub async fn register(State(data): State<ServerState>) -> impl IntoResponse {
     let mut state = data.lock().await;
     let new_player = state.gen_player();
     match state.respond_to_player(new_player.id) {
@@ -65,7 +65,7 @@ pub async fn register(State(data): State<AppState>) -> impl IntoResponse {
     }
 }
 
-pub async fn look(State(data): State<AppState>, Path(pid): Path<u16>) -> impl IntoResponse {
+pub async fn look(State(data): State<ServerState>, Path(pid): Path<u16>) -> impl IntoResponse {
     let state = data.lock().await;
     match state.respond_to_player(pid) {
         Some(res) => Json(res).into_response(),
@@ -74,7 +74,7 @@ pub async fn look(State(data): State<AppState>, Path(pid): Path<u16>) -> impl In
 }
 
 pub async fn movement(
-    State(data): State<AppState>,
+    State(data): State<ServerState>,
     Path((dir, pid)): Path<(String, u16)>,
 ) -> impl IntoResponse {
     let mut state = data.lock().await;
@@ -88,7 +88,7 @@ pub async fn movement(
     }
 }
 
-pub async fn quit(State(data): State<AppState>, Path(pid): Path<u16>) -> impl IntoResponse {
+pub async fn quit(State(data): State<ServerState>, Path(pid): Path<u16>) -> impl IntoResponse {
     let mut state = data.lock().await;
     match state.remove_player(pid) {
         Some(res) => Json(res).into_response(),

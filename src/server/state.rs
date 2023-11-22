@@ -4,10 +4,9 @@ use anyhow::anyhow;
 use rand::Rng;
 use tokio::sync::Mutex;
 
-use crate::actor::MoveDir;
-use crate::api::{FullResponse, PartialResponse, PlayerLocation};
+use crate::api::{FullResponse, MoveDir, PartialResponse, PlayerLocation};
 
-pub type AppState = Arc<Mutex<GameState>>;
+pub type ServerState = Arc<Mutex<GameState>>;
 
 #[derive(Clone, Debug)]
 pub struct GameState {
@@ -26,15 +25,8 @@ pub struct Player {
 }
 
 impl GameState {
-    pub fn new() -> AppState {
+    pub fn new_server_state() -> ServerState {
         Arc::new(Mutex::new(Self {
-            // players: vec![Player {
-            //     id: 1000,
-            //     name: "Player 1000".into(),
-            //     is_it: true,
-            //     x: 0,
-            //     y: 0,
-            // }],
             players: Vec::new(),
             width: 30,
             height: 10,

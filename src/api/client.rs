@@ -1,7 +1,7 @@
+use core::fmt;
 use serde::Deserialize;
 use std::time::Duration;
 
-use crate::actor::MoveDir;
 use crate::server::URL;
 
 use super::json;
@@ -70,5 +70,39 @@ impl Default for ApiClient {
                 .build()
                 .expect("hardcoded config for builder should not panic"),
         }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub enum MoveDir {
+    Up,
+    Down,
+    Left,
+    Right,
+    None,
+}
+
+impl From<&String> for MoveDir {
+    fn from(value: &String) -> Self {
+        match value {
+            s if s == "up" => Self::Up,
+            s if s == "down" => Self::Down,
+            s if s == "left" => Self::Left,
+            s if s == "right" => Self::Right,
+            _ => Self::None,
+        }
+    }
+}
+
+impl fmt::Display for MoveDir {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Self::Up => "up",
+            Self::Down => "down",
+            Self::Left => "left",
+            Self::Right => "right",
+            Self::None => "look",
+        };
+        write!(f, "{s}")
     }
 }
