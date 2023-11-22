@@ -61,10 +61,17 @@ impl GameState {
                 };
 
                 let (nx, ny) = (self.players[idx].x + dx, self.players[idx].y + dy);
-                // TODO: tagging
+
                 if !self.occupied(nx, ny) {
                     self.players[idx].x = nx;
                     self.players[idx].y = ny;
+                } else {
+                    // just tested for player at pos, should not panic
+                    let j = self.get_player_index_at(nx, ny).unwrap();
+                    if self.players[idx].is_it || self.players[j].is_it {
+                        self.players[idx].is_it = !self.players[idx].is_it;
+                        self.players[j].is_it = !self.players[j].is_it;
+                    }
                 }
                 Ok(())
             }
@@ -95,6 +102,7 @@ impl GameState {
         let response = self.respond_to_player(id);
         let idx = self.get_player_index(id)?;
         self.players.remove(idx);
+        self.random_it();
         response
     }
 
@@ -104,6 +112,10 @@ impl GameState {
 
     fn get_player_index(&mut self, id: u16) -> Option<usize> {
         self.players.iter().position(|p| p.id == id)
+    }
+
+    fn get_player_index_at(&mut self, x: i16, y: i16) -> Option<usize> {
+        self.players.iter().position(|p| p.x == x && p.y == y)
     }
 
     fn get_other_players(&self, id: u16) -> Vec<PlayerLocation> {
@@ -116,6 +128,14 @@ impl GameState {
                 y: p.y,
             })
             .collect()
+    }
+
+    fn random_it(&mut self) {
+        let player_count = self.players.len();
+        if player_count != 0 {
+            let new_it = rand::thread_rng().gen_range(0..player_count);
+            self.players[new_it].is_it = true;
+        }
     }
 
     fn random_unoccupied(&self) -> (i16, i16) {

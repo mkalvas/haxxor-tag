@@ -7,16 +7,12 @@ use ratatui::{
     },
 };
 
-use crate::actor::ActorState;
+use crate::actor_v2::Game;
 
-pub fn render(
-    state: &ActorState,
-    width: u16,
-    height: u16,
-) -> Canvas<impl Fn(&mut Context<'_>) + '_> {
+pub fn render(state: &Game, width: u16, height: u16) -> Canvas<impl Fn(&mut Context<'_>) + '_> {
     Canvas::default()
-        .x_bounds(bounds(width))
-        .y_bounds(bounds(height))
+        .x_bounds([0f64, width as f64]) // bounds(width))
+        .y_bounds([0f64, height as f64]) // bounds(height))
         .marker(Marker::Bar)
         .paint(|ctx| {
             ctx.draw(state);

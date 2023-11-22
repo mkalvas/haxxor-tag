@@ -1,12 +1,10 @@
 use anyhow::anyhow;
-use core::fmt;
 use pathfinding::prelude::astar;
-use serde::Deserialize;
 
-use crate::api::{ApiClient, FullResponse};
+use crate::api::{ApiClient, FullResponse, MoveDir};
 
 use super::position::Pos;
-use super::state::ActorState;
+use super::state::Game;
 
 pub enum Action {
     Look,
@@ -14,7 +12,7 @@ pub enum Action {
     Register,
 }
 
-pub async fn try_quit(client: &ApiClient, state: &mut ActorState) -> anyhow::Result<()> {
+pub async fn try_quit(client: &ApiClient, state: &mut Game) -> anyhow::Result<()> {
     match &mut state.game {
         None => Err(anyhow!("Cannot quit before registering as a player")),
         Some(s) => {
@@ -26,7 +24,7 @@ pub async fn try_quit(client: &ApiClient, state: &mut ActorState) -> anyhow::Res
 }
 
 /// Determine the best course of action and take it.
-pub async fn take_action(client: &ApiClient, state: &mut ActorState) -> anyhow::Result<()> {
+pub async fn take_action(client: &ApiClient, state: &mut Game) -> anyhow::Result<()> {
     match determine_action(state) {
         Action::Register => {
             let new_state = client.register().await?;
@@ -50,7 +48,7 @@ pub async fn take_action(client: &ApiClient, state: &mut ActorState) -> anyhow::
     Ok(())
 }
 
-fn determine_action(state: &ActorState) -> Action {
+fn determine_action(state: &Game) -> Action {
     match &state.game {
         None => Action::Register,
         Some(game) => {
@@ -74,7 +72,7 @@ fn chase_dir(game: &FullResponse) -> MoveDir {
     let target = closest_player(game, &me);
     let path = astar(
         &me,
-        |p| p.successors(&game),
+        |p| p.successors(&game, true),
         |p| p.distance(&target),
         |p| *p == target,
     );
@@ -87,7 +85,7 @@ fn flee_dir(game: &FullResponse) -> MoveDir {
     let target = max_square(game, &it);
     let path = astar(
         &me,
-        |p| p.successors(&game),
+        |p| p.successors(&game, false),
         |p| p.distance(&target),
         |p| *p == target,
     );
@@ -123,7 +121,8 @@ fn max_square(game: &FullResponse, it: &Pos) -> Pos {
         for y in 0..game.map_height {
             let pt = Pos(x, y);
             let d = pt.distance(it);
-            if d > max {
+            let is_me = game.inner.x == x && game.inner.y == y;
+            if d > max && (!game.occupied(x, y) || is_me) {
                 max = d;
                 target = pt;
             }
@@ -144,7 +143,9 @@ fn closest_player(game: &FullResponse, me: &Pos) -> Pos {
     for p in &game.inner.players {
         let d = me.distance(&Pos(p.x, p.y));
         match closest {
-            None => closest = Some((p.x, p.y, d)),
+            None => {
+                closest = Some((p.x, p.y, d));
+            }
             Some(c) => {
                 if d < c.2 {
                     closest = Some((p.x, p.y, d));
@@ -155,39 +156,5 @@ fn closest_player(game: &FullResponse, me: &Pos) -> Pos {
     match closest {
         Some(c) => Pos(c.0, c.1),
         None => Pos(game.inner.x, game.inner.y), // stand still if no one exists
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq)]
-pub enum MoveDir {
-    Up,
-    Down,
-    Left,
-    Right,
-    None,
-}
-
-impl From<&String> for MoveDir {
-    fn from(value: &String) -> Self {
-        match value {
-            s if s == "up" => Self::Up,
-            s if s == "down" => Self::Down,
-            s if s == "left" => Self::Left,
-            s if s == "right" => Self::Right,
-            _ => Self::None,
-        }
-    }
-}
-
-impl fmt::Display for MoveDir {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = match self {
-            Self::Up => "up",
-            Self::Down => "down",
-            Self::Left => "left",
-            Self::Right => "right",
-            Self::None => "look",
-        };
-        write!(f, "{s}")
     }
 }

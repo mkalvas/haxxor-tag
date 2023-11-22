@@ -3,13 +3,13 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{prelude::*, Terminal};
+use ratatui::{prelude::*, widgets::Paragraph, Terminal};
 use std::{
     io, panic,
     time::{Duration, Instant},
 };
 
-use crate::actor::{ActorState, SyncedActor};
+use crate::actor_v2::{Game, GameState};
 
 use super::game;
 
@@ -21,11 +21,11 @@ pub fn setup_panic_hook() {
     }));
 }
 
-pub async fn run(mut app: SyncedActor) -> anyhow::Result<()> {
+pub async fn run(mut app: GameState) -> anyhow::Result<()> {
     let mut terminal = setup_terminal()?;
     let mut last_tick = Instant::now();
     loop {
-        let lock = app.read().await;
+        let lock = app.lock().await;
         if render(&lock, &mut terminal).is_err() {
             break;
         }
@@ -56,21 +56,22 @@ fn restore_terminal() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn render(
-    app: &ActorState,
-    terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
-) -> anyhow::Result<()> {
+fn render(app: &Game, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> anyhow::Result<()> {
     terminal.draw(|rect| {
         if let Some(game) = &app.game {
             let w: u16 = game.map_width.unsigned_abs();
             let h: u16 = game.map_height.unsigned_abs();
             rect.render_widget(game::render(app, w, h), Rect::new(0, 0, w, h));
+            rect.render_widget(
+                Paragraph::new(format!("{:#?}", game)),
+                Rect::new(0, h + 1, rect.size().width, rect.size().height - h - 1),
+            )
         }
     })?;
     Ok(())
 }
 
-async fn tick(app: &mut SyncedActor, last_tick: &mut Instant) -> anyhow::Result<()> {
+async fn tick(app: &mut GameState, last_tick: &mut Instant) -> anyhow::Result<()> {
     let tick_rate = Duration::from_millis(50);
     let timeout = tick_rate
         .checked_sub(last_tick.elapsed())
@@ -78,7 +79,7 @@ async fn tick(app: &mut SyncedActor, last_tick: &mut Instant) -> anyhow::Result<
 
     if event::poll(timeout)? {
         if let Event::Key(key) = event::read()? {
-            app.write().await.handle_input(key)?;
+            app.lock().await.handle_input(key)?;
         }
     }
 
