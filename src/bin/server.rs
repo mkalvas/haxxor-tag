@@ -1,4 +1,4 @@
-#[actix_web::main]
-pub async fn main() -> std::io::Result<()> {
+#[tokio::main]
+pub async fn main() -> anyhow::Result<()> {
     xor_tag::server::serve().await
 }

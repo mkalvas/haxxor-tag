@@ -15,7 +15,6 @@ pub enum Action {
 }
 
 pub async fn try_quit(client: &ApiClient, state: &mut ActorState) -> anyhow::Result<()> {
-    // println!("quitting");
     match &mut state.game {
         None => Err(anyhow!("Cannot quit before registering as a player")),
         Some(s) => {
@@ -30,31 +29,23 @@ pub async fn try_quit(client: &ApiClient, state: &mut ActorState) -> anyhow::Res
 pub async fn take_action(client: &ApiClient, state: &mut ActorState) -> anyhow::Result<()> {
     match determine_action(state) {
         Action::Register => {
-            // println!("registering");
             let new_state = client.register().await?;
-            // println!("{new_state:#?}");
             state.game = Some(new_state);
         }
-        Action::Look => {
-            // println!("looking");
-            match &mut state.game {
-                None => return Err(anyhow!("Cannot look before registering as a player")),
-                Some(s) => {
-                    let new_partial = client.look(s.id).await?;
-                    s.inner = new_partial;
-                }
+        Action::Look => match &mut state.game {
+            None => return Err(anyhow!("Cannot look before registering as a player")),
+            Some(s) => {
+                let new_partial = client.look(s.id).await?;
+                s.inner = new_partial;
             }
-        }
-        Action::Move(dir) => {
-            // println!("moving {dir}");
-            match &mut state.game {
-                None => return Err(anyhow!("Cannot move before registering as a player")),
-                Some(s) => {
-                    let new_partial = client.mv(s.id, dir).await?;
-                    s.inner = new_partial;
-                }
+        },
+        Action::Move(dir) => match &mut state.game {
+            None => return Err(anyhow!("Cannot move before registering as a player")),
+            Some(s) => {
+                let new_partial = client.mv(s.id, dir.clone()).await?;
+                s.inner = new_partial;
             }
-        }
+        },
     }
     Ok(())
 }
@@ -83,7 +74,7 @@ fn chase_dir(game: &FullResponse) -> MoveDir {
     let target = closest_player(game, &me);
     let path = astar(
         &me,
-        |p| p.successors(&game.inner),
+        |p| p.successors(&game),
         |p| p.distance(&target),
         |p| *p == target,
     );
@@ -96,7 +87,7 @@ fn flee_dir(game: &FullResponse) -> MoveDir {
     let target = max_square(game, &it);
     let path = astar(
         &me,
-        |p| p.successors(&game.inner),
+        |p| p.successors(&game),
         |p| p.distance(&target),
         |p| *p == target,
     );

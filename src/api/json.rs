@@ -29,6 +29,17 @@ pub struct FullResponse {
     pub inner: PartialResponse,
 }
 
+impl FullResponse {
+    pub fn occupied(&self, x: i16, y: i16) -> bool {
+        x < 0
+            || y < 0
+            || x >= self.map_width
+            || y >= self.map_height
+            || self.inner.x == x && self.inner.y == y
+            || self.inner.players.iter().any(|p| p.x == x && p.y == y)
+    }
+}
+
 /// Partial state to deserialize on updates. See `RegisterResult` for the full
 /// struct that includes this one as well as the stable fields such as `id`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -60,12 +71,6 @@ pub struct PartialResponse {
     ///
     /// The bottom row is <span class="code">mapHeight - 1</span>.
     pub y: i16,
-}
-
-impl PartialResponse {
-    pub fn occupied(&self, x: i16, y: i16) -> bool {
-        self.x == x && self.y == y || self.players.iter().any(|p| p.x == x && p.y == y)
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

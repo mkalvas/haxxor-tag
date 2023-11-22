@@ -1,28 +1,25 @@
-use actix_web::middleware::Logger;
-use actix_web::web::Data;
-use actix_web::{App, HttpServer};
-use std::io;
-
+use anyhow::anyhow;
+use std::net::SocketAddr;
 mod routes;
 mod state;
 
+use state::GameState;
+
 pub const URL: &str = "http://localhost:3000";
 
-pub async fn serve() -> io::Result<()> {
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+pub async fn serve() -> anyhow::Result<()> {
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::DEBUG)
+        .init();
 
-    let state = Data::new(state::AppState::default());
+    let state = GameState::new();
+    let router = routes::build_router(state);
 
-    HttpServer::new(move || {
-        App::new()
-            .wrap(Logger::default())
-            .app_data(state.clone())
-            .service(routes::register)
-            .service(routes::look)
-            .service(routes::movement)
-            .service(routes::quit)
-    })
-    .bind(("localhost", 3000))?
-    .run()
-    .await
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    tracing::info!("listening on {}", addr);
+    let result = axum::Server::bind(&addr)
+        .serve(router.into_make_service())
+        .await;
+
+    result.map_err(|e| anyhow!(e))
 }

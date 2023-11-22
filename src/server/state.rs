@@ -1,24 +1,15 @@
+use std::sync::Arc;
+
 use anyhow::anyhow;
 use rand::Rng;
-use tokio::sync::RwLock;
+use tokio::sync::Mutex;
 
 use crate::actor::MoveDir;
 use crate::api::{FullResponse, PartialResponse, PlayerLocation};
 
-#[derive(Debug)]
-pub struct AppState {
-    pub inner: RwLock<GameState>,
-}
+pub type AppState = Arc<Mutex<GameState>>;
 
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            inner: RwLock::new(GameState::default()),
-        }
-    }
-}
-
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct GameState {
     players: Vec<Player>,
     width: i16,
@@ -34,9 +25,9 @@ pub struct Player {
     y: i16,
 }
 
-impl Default for GameState {
-    fn default() -> Self {
-        Self {
+impl GameState {
+    pub fn new() -> AppState {
+        Arc::new(Mutex::new(Self {
             // players: vec![Player {
             //     id: 1000,
             //     name: "Player 1000".into(),
@@ -47,11 +38,9 @@ impl Default for GameState {
             players: Vec::new(),
             width: 30,
             height: 10,
-        }
+        }))
     }
-}
 
-impl GameState {
     pub fn gen_player(&mut self) -> Player {
         let id = rand::thread_rng().gen_range(1000..2000);
         let (x, y) = self.random_unoccupied();

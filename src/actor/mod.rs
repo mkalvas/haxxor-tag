@@ -33,7 +33,7 @@ pub async fn run() -> anyhow::Result<()> {
             // reset retries after each successful action
             state.retries = 2;
         };
-        // print_board(&lock.game);
+        // print_board(&state.game);
     }
 }
 
@@ -44,12 +44,10 @@ pub async fn run_sync(state: SyncedActor) -> anyhow::Result<()> {
         interval.tick().await;
         let mut lock = state.write().await;
         let res = actions::take_action(&client, &mut lock).await;
-        println!("dead: {}", lock.dead);
         if res.is_err() || lock.dead {
             if lock.retries > 0 && !lock.dead {
                 lock.retries -= 1;
             } else {
-                println!("quitting");
                 lock.dead = true;
                 let msg = match actions::try_quit(&client, &mut lock).await {
                     Ok(()) => "successful",
