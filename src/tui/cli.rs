@@ -9,7 +9,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use crate::actor_v2::{Game, GameState};
+use crate::actor::{Game, GameState};
 
 use super::game;
 

@@ -7,7 +7,7 @@ use ratatui::{
     },
 };
 
-use crate::actor_v2::Game;
+use crate::actor::Game;
 
 pub fn render(state: &Game, width: u16, height: u16) -> Canvas<impl Fn(&mut Context<'_>) + '_> {
     Canvas::default()

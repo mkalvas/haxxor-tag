@@ -1,4 +1,5 @@
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
-    haxxor_tag::actor::run().await
+    let state = haxxor_tag::actor::Game::new_state();
+    haxxor_tag::actor::run(state).await
 }
