@@ -1,6 +1,6 @@
 use anyhow::anyhow;
+use haxxor_tag::{actor_v2, tui};
 use tokio::join;
-use xor_tag::{actor_v2, tui};
 
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
@@ -10,7 +10,7 @@ pub async fn main() -> anyhow::Result<()> {
     let ui = tui::run(state);
     let thing = join!(actor, ui);
     match thing {
-        (Ok(_), Ok(_)) => Ok(()),
+        (Ok(_), Ok(())) => Ok(()),
         err_tuple => Err(anyhow!("{err_tuple:#?}")),
     }
 }

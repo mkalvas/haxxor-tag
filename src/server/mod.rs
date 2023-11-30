@@ -1,5 +1,6 @@
 use anyhow::anyhow;
-use std::net::SocketAddr;
+use tokio::net::TcpListener;
+
 mod routes;
 mod state;
 
@@ -15,11 +16,15 @@ pub async fn serve() -> anyhow::Result<()> {
     let state = GameState::new_server_state();
     let router = routes::build_router(state);
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    tracing::info!("listening on {}", addr);
-    let result = axum::Server::bind(&addr)
-        .serve(router.into_make_service())
-        .await;
-
-    result.map_err(|e| anyhow!(e))
+    match TcpListener::bind("127.0.0.1:3000").await {
+        Ok(listener) => {
+            tracing::info!("listening on localhost:3000");
+            let result = axum::serve(listener, router).await;
+            result.map_err(|e| anyhow!(e))
+        }
+        Err(e) => {
+            tracing::error!("failed to bind tcp listener on 0.0.0.0:3000");
+            Err(anyhow!(e))
+        }
+    }
 }

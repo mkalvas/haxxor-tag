@@ -50,7 +50,7 @@ impl Game {
 impl Shape for Game {
     fn draw(&self, painter: &mut Painter) {
         if let Some(game) = &self.game {
-            if let Some((x, y)) = painter.get_point(game.inner.x as f64, game.inner.y as f64) {
+            if let Some((x, y)) = painter.get_point(game.inner.x.into(), game.inner.y.into()) {
                 let color = if game.inner.is_it {
                     Color::Red
                 } else {
@@ -59,7 +59,7 @@ impl Shape for Game {
                 painter.paint(x, y, color);
             }
             for player in &game.inner.players {
-                if let Some((x, y)) = painter.get_point(player.x as f64, player.y as f64) {
+                if let Some((x, y)) = painter.get_point(player.x.into(), player.y.into()) {
                     let color = if player.is_it {
                         Color::Red
                     } else {

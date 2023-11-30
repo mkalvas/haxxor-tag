@@ -72,7 +72,7 @@ fn chase_dir(game: &FullResponse) -> MoveDir {
     let target = closest_player(game, &me);
     let path = astar(
         &me,
-        |p| p.successors(&game, true),
+        |p| p.successors(game, true),
         |p| p.distance(&target),
         |p| *p == target,
     );
@@ -85,7 +85,7 @@ fn flee_dir(game: &FullResponse) -> MoveDir {
     let target = max_square(game, &it);
     let path = astar(
         &me,
-        |p| p.successors(&game, false),
+        |p| p.successors(game, false),
         |p| p.distance(&target),
         |p| *p == target,
     );

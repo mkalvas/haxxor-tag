@@ -11,8 +11,8 @@ use crate::actor_v2::Game;
 
 pub fn render(state: &Game, width: u16, height: u16) -> Canvas<impl Fn(&mut Context<'_>) + '_> {
     Canvas::default()
-        .x_bounds([0f64, width as f64])
-        .y_bounds([0f64, height as f64])
+        .x_bounds([0f64, width.into()])
+        .y_bounds([0f64, height.into()])
         .marker(Marker::HalfBlock)
         .paint(|ctx| {
             ctx.draw(state);

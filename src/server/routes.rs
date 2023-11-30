@@ -33,22 +33,22 @@ impl WithMiddleware for Router {
         let tracer = TraceLayer::new_for_http()
             .make_span_with(|_req: &Request<_>| tracing::info_span!("http-request"))
             .on_request(|req: &Request<_>, _span: &Span| {
-                tracing::info!("started {} {}", req.method(), req.uri().path())
+                tracing::info!("started {} {}", req.method(), req.uri().path());
             })
             .on_response(|_response: &Response<_>, latency: Duration, _span: &Span| {
-                tracing::info!("response generated in {:#?}", latency)
+                tracing::info!("response generated in {:#?}", latency);
             })
             .on_body_chunk(|chunk: &Bytes, _latency: Duration, _span: &Span| {
-                tracing::debug!("sending {} bytes", chunk.len())
+                tracing::debug!("sending {} bytes", chunk.len());
             })
             .on_eos(
                 |_trailers: Option<&HeaderMap>, stream_duration: Duration, _span: &Span| {
-                    tracing::debug!("stream closed after {:?}", stream_duration)
+                    tracing::debug!("stream closed after {:?}", stream_duration);
                 },
             )
             .on_failure(
                 |err: ServerErrorsFailureClass, _latency: Duration, _span: &Span| {
-                    tracing::info!("something went wrong: {}", err)
+                    tracing::info!("something went wrong: {}", err);
                 },
             );
 

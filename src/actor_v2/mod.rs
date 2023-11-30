@@ -1,4 +1,5 @@
-use rand::seq::SliceRandom;
+// use rand::seq::SliceRandom;
+use rand::Rng;
 use tokio::time::{interval, Duration};
 
 use crate::api::ApiClient;
@@ -12,12 +13,17 @@ pub use state::{Game, GameState};
 pub async fn run(state: GameState) -> anyhow::Result<()> {
     let client = ApiClient::default();
 
-    // only returns none when slice is empty
-    let speed = [10u64].choose(&mut rand::thread_rng()).unwrap();
-    let mut interval = interval(Duration::from_millis(*speed));
+    // let speed = [100u64].choose(&mut rand::thread_rng()).unwrap();
+    // let speed = rand::thread_rng().gen_range(200);
+    let mut interval = interval(Duration::from_micros(100u64));
 
     loop {
-        interval.tick().await;
+        // interval.tick().await;
+        // random hiccups to make the game more interesting
+        if rand::thread_rng().gen_bool(1.0 / 2.0) {
+            interval.tick().await;
+        }
+
         let mut lock = state.lock().await;
         if lock.should_quit {
             return actions::try_quit(&client, &mut lock).await;

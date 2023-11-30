@@ -1,4 +1,4 @@
 #[tokio::main]
 pub async fn main() -> anyhow::Result<()> {
-    xor_tag::actor::run().await
+    haxxor_tag::actor::run().await
 }

@@ -62,16 +62,16 @@ impl GameState {
 
                 let (nx, ny) = (self.players[idx].x + dx, self.players[idx].y + dy);
 
-                if !self.occupied(nx, ny) {
-                    self.players[idx].x = nx;
-                    self.players[idx].y = ny;
-                } else {
-                    // just tested for player at pos, should not panic
+                if self.occupied(nx, ny) {
+                    // SAFETY: just tested for player at pos, should not panic
                     let j = self.get_player_index_at(nx, ny).unwrap();
                     if self.players[idx].is_it || self.players[j].is_it {
                         self.players[idx].is_it = !self.players[idx].is_it;
                         self.players[j].is_it = !self.players[j].is_it;
                     }
+                } else {
+                    self.players[idx].x = nx;
+                    self.players[idx].y = ny;
                 }
                 Ok(())
             }

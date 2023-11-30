@@ -17,7 +17,7 @@ pub fn setup_panic_hook() {
     let original_hook = std::panic::take_hook();
     panic::set_hook(Box::new(move |panic| {
         restore_terminal().unwrap();
-        original_hook(panic)
+        original_hook(panic);
     }));
 }
 
@@ -63,9 +63,9 @@ fn render(app: &Game, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> 
             let h: u16 = game.map_height.unsigned_abs();
             rect.render_widget(game::render(app, w, h), Rect::new(0, 0, w, h));
             rect.render_widget(
-                Paragraph::new(format!("{:#?}", game)),
+                Paragraph::new(format!("{game:#?}")),
                 Rect::new(0, h + 1, rect.size().width, rect.size().height - h - 1),
-            )
+            );
         }
     })?;
     Ok(())
