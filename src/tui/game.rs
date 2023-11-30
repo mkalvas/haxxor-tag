@@ -11,18 +11,13 @@ use crate::actor_v2::Game;
 
 pub fn render(state: &Game, width: u16, height: u16) -> Canvas<impl Fn(&mut Context<'_>) + '_> {
     Canvas::default()
-        .x_bounds([0f64, width as f64]) // bounds(width))
-        .y_bounds([0f64, height as f64]) // bounds(height))
-        .marker(Marker::Bar)
+        .x_bounds([0f64, width as f64])
+        .y_bounds([0f64, height as f64])
+        .marker(Marker::HalfBlock)
         .paint(|ctx| {
             ctx.draw(state);
         })
         .block(game_block())
-}
-
-fn bounds(span: u16) -> [f64; 2] {
-    let half = (span / 2) as f64;
-    [-half, if span % 2 == 0 { half } else { half + 1_f64 }]
 }
 
 pub fn game_block<'a>() -> Block<'a> {

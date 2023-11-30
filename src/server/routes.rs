@@ -35,8 +35,8 @@ impl WithMiddleware for Router {
             .on_request(|req: &Request<_>, _span: &Span| {
                 tracing::info!("started {} {}", req.method(), req.uri().path())
             })
-            .on_response(|response: &Response<_>, latency: Duration, _span: &Span| {
-                tracing::info!("response generated in {:#?}\n{:#?}", latency, response)
+            .on_response(|_response: &Response<_>, latency: Duration, _span: &Span| {
+                tracing::info!("response generated in {:#?}", latency)
             })
             .on_body_chunk(|chunk: &Bytes, _latency: Duration, _span: &Span| {
                 tracing::debug!("sending {} bytes", chunk.len())

@@ -28,7 +28,7 @@ impl GameState {
     pub fn new_server_state() -> ServerState {
         Arc::new(Mutex::new(Self {
             players: Vec::new(),
-            width: 30,
+            width: 25,
             height: 10,
         }))
     }
