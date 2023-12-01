@@ -6,7 +6,13 @@ mod state;
 
 use state::GameState;
 
-pub const URL: &str = "http://localhost:3000";
+pub fn url() -> String {
+    std::env::var("HAXXOR_URL").unwrap_or("http://127.0.0.1:3000".into())
+}
+
+fn host() -> String {
+    std::env::var("HAXXOR_HOST").unwrap_or("127.0.0.1:3000".into())
+}
 
 pub async fn serve() -> anyhow::Result<()> {
     tracing_subscriber::fmt()
@@ -15,15 +21,16 @@ pub async fn serve() -> anyhow::Result<()> {
 
     let state = GameState::new_server_state();
     let router = routes::build_router(state);
+    let host = host();
 
-    match TcpListener::bind("127.0.0.1:3000").await {
+    match TcpListener::bind(&host).await {
         Ok(listener) => {
-            tracing::info!("listening on localhost:3000");
+            tracing::info!("listening on {host}");
             let result = axum::serve(listener, router).await;
             result.map_err(|e| anyhow!(e))
         }
         Err(e) => {
-            tracing::error!("failed to bind tcp listener on 0.0.0.0:3000");
+            tracing::error!("failed to bind tcp listener on {host}");
             Err(anyhow!(e))
         }
     }

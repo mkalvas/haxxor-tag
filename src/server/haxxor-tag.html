@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lan="en-US">
+  <head>
+    <title>haxxor tag</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      html {
+        font-family: sans-serif;
+        padding-left: 3%;
+        padding-right: 3%;
+      }
+
+      .code {
+        font-family: monospace;
+      }
+
+      .nav {
+        color: white;
+        font-size: 2em;
+        padding: 0.5em;
+        background-color: darkslategray;
+        width: 95%;
+      }
+
+      .nav-link {
+        float: right;
+        font-size: 0.5em;
+        padding-left: 1em;
+        padding-top: 1.5em;
+      }
+
+      .nav-link a:link,
+      .nav-link a:visited {
+        color: white;
+        text-decoration: none;
+      }
+
+      .nav-link a:hover {
+        text-decoration: underline;
+      }
+
+      #winning {
+        font-size: 140%;
+      }
+
+      #map {
+        width: 500px;
+        height: 300px;
+      }
+
+      .map-row {
+        width: 500px;
+        display: flex;
+      }
+
+      .stats-title {
+        font-size: 140%;
+        padding-bottom: 1em;
+      }
+
+      .watch {
+        padding-top: 1em;
+        display: inline-block;
+      }
+
+      .field {
+        text-align: right;
+      }
+
+      td {
+        padding: 3px 10px;
+      }
+
+      table {
+        margin-top: 1rem;
+      }
+
+      table,
+      td {
+        border: 1px solid black;
+        border-collapse: collapse;
+      }
+
+      @media only screen and (min-width: 800px) {
+        .stats {
+          float: right;
+          padding-left: 2em;
+          font-size: 90%;
+        }
+      }
+
+      @media only screen and (max-width: 800px) {
+        .stats {
+          float: none;
+        }
+      }
+
+      @media only screen and (max-width: 800px) {
+        html {
+          padding-left: 0;
+          padding-right: 0;
+        }
+        .nav-link {
+          visibility: hidden;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="nav">
+        Haxxor Tag
+        <div class="nav-link"><a href="#instructions">Instructions</a></div>
+        <div class="nav-link"><a href="#about">About</a></div>
+        <div class="nav-link"><a href="#watch">Watch</a></div>
+      </div>
+    </header>
+
+    <a name="watch"></a>
+    <div class="watch">
+      <div style="float: left">
+        <div id="winning" style="margin-bottom: 35px">No one is playing</div>
+        <div id="map"></div>
+      </div>
+
+      <button id="reset-button" style="float: right" type="button">
+        Reset Game
+      </button>
+
+      <div class="stats">
+        <div class="stats-title">Status</div>
+        <p id="tags">No tags yet</p>
+        <p id="requests">No actions taken yet</p>
+        <p id="isIt">No one is it</p>
+        <ol id="playerList"></ol>
+      </div>
+    </div>
+
+    <a name="about"></a>
+    <h2>About</h2>
+    <p>
+      XorTag is tag like you used to play in school. But instead of you running
+      around and getting sweaty, you write a program to do the running for you.
+      It is meant as an exercise in programming, not as a definitive tag
+      experience.
+    </p>
+    <p>
+      The term "<a href="http://en.wikipedia.org/wiki/Exclusive_or">xor</a>" has
+      nothing to do with the game. It's just a programming term that sounds
+      cool.
+    </p>
+
+    <a name="instructions"></a>
+    <h2>How to Play</h2>
+    <p>
+      So how do you play this game anyway? Good question. You'll need to have a
+      few skills, including basic programming skills, the ability to make HTTP
+      requests, and the ability to deal with JSON results you get from those
+      requests.
+    </p>
+    <p>
+      You interact with the game by making HTTP requests. Every request you make
+      will return a JSON object that looks like this:
+    </p>
+
+    <pre>
+      <span class="code">
+          {
+              "isIt" : true,
+              "mapHeight" : 30,
+              "mapWidth" : 50,
+              "name" : "Player 1000",
+              "players" : [
+              {
+                  "isIt" : false,
+                  "x" : 27,
+                  "y" : 11
+              }],
+              "x" : 23,
+              "y" : 14
+              "id" : "1000",
+          }
+      </span>
+    </pre>
+
+    Here is what the different fields on that JSON object mean:
+    <table>
+      <tbody>
+        <tr>
+          <td class="field"><b>id</b></td>
+          <td>
+            The id for your player. You'll use it to make all your other
+            requests to the game. That's how the game knows it's you, rather
+            than that shady looking guy over there in the corner.
+          </td>
+        </tr>
+        <tr>
+          <td class="field"><b>isIt</b></td>
+          <td>
+            Let's you know if you are it or not. True means you're it, false
+            means run for your life.
+          </td>
+        </tr>
+        <tr>
+          <td class="field"><b>mapHeight</b></td>
+          <td>How many tiles wide the map is.</td>
+        </tr>
+        <tr>
+          <td class="field"><b>mapWidth</b></td>
+          <td>How many tiles high the map is.</td>
+        </tr>
+        <tr>
+          <td class="field"><b>name</b></td>
+          <td>Your player's name. Everyone's got to have a name.</td>
+        </tr>
+        <tr>
+          <td class="field"><b>players</b></td>
+          <td>
+            An array of other players that are close enough for you to see. Each
+            player has an X position, a Y position and whether or not they are
+            it. If they aren't it and you are, get 'em! If they are it, run for
+            it.
+          </td>
+        </tr>
+        <tr>
+          <td class="field"><b>x</b></td>
+          <td>
+            The X (horizontal) position of your player. The left-most column on
+            the map is position 0. The right-most column is
+            <span class="code">mapWidth - 1</span>.
+          </td>
+        </tr>
+        <tr>
+          <td class="field"><b>y</b></td>
+          <td>
+            The Y (vertical) position of your player. The top row of the map is
+            position 0. The bottom row is
+            <span class="code">mapHeight - 1</span>.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Registering</h3>
+    <p>
+      This is the first step you'll need to do. When you register the game will
+      create your player, assign you an id, pick a name for you and put your
+      player on the map. When you register you'll get back a JSON object (as
+      described above) that will let you know what your id is and where your
+      player is. To register you need to make an HTTP request to the following
+      url:
+    </p>
+    <p><span class="code">http://localhost:3000/register</span></p>
+
+    <h3>Moving</h3>
+    <p>
+      Once you are registered you can start moving your player around. This is
+      the heart of tag. If you are "it", try to move towards other players and
+      tag them. If you move to the same space where another player is, that
+      counts as a tag. If you aren't "it", try to run away from the player who
+      is.
+    </p>
+    <p>
+      You can move in any of four directions by making HTTP requests to any of
+      the four urls:
+    </p>
+    <p>
+      <span class="code">http://localhost:3000/moveup/</span>{your player id}<br />
+      <span class="code">http://localhost:3000/movedown/</span>{your player
+      id}<br />
+      <span class="code">http://localhost:3000/moveleft/</span>{your player
+      id}<br />
+      <span class="code">http://localhost:3000/moveright/</span>{your player
+      id}<br />
+    </p>
+    <p>
+      After the direction (<span class="code">moveup</span>,
+      <span class="code">movedown</span>, etc.), add your player's id. That will
+      make sure it's you moving your player and not some guy in Abu Dhabi.
+    </p>
+    <p>
+      When you move your player, you will receive an updated JSON object as a
+      response to your request. You can use this information to keep track of
+      where other players are on the map.
+    </p>
+    <p>
+      If you try to move to a tile and there's already a player there, you won't
+      go anywhere. No piggybacking here.
+    </p>
+    <p>
+      You also can't move outside the map. There's no
+      <a href="http://en.wikipedia.org/wiki/Red_pill_and_blue_pill">red pill</a>
+      in this game.
+    </p>
+
+    <h3>Looking</h3>
+    <p>
+      If you want to get an update on what's going on in the world, but don't
+      want to lose the sweet spot you have claimed, you can do that by looking.
+      To look, make an HTTP request to the following url:
+    </p>
+    <p><span class="code">http://localhost:3000/look/</span>{your player id}</p>
+    <p>
+      As with moving, make sure to supply your user id. Also, in response to
+      your request you'll receive back an updated JSON object.
+    </p>
+
+    <h3>Not So Fast There</h3>
+    <p>
+      To make sure the server doesn't explode as players submit requests as fast
+      as possible, each player can perform an action at most once per second.
+      Moving and looking both count as actions. Registering does not count as an
+      action. Any actions performed more frequently than
+      <b>once per second</b> will be ignored. In this case an error
+      (specifically a 503 error) will be returned instead of a JSON object. So
+      your code will either need to not make requests too often or handle those
+      errors.
+    </p>
+    <p>
+      Also, if your player is totally inactive for 5 minutes it will be removed
+      from the game.
+    </p>
+
+    <h3>Sample Code</h3>
+    <p>
+      You can get some sample code on how to do all this
+      <a href="https://bitbucket.org/theparticleman/xortagsample">here</a>. If
+      you just want to download the code (as a zip file) you can do that
+      <a href="https://bitbucket.org/theparticleman/xortagsample/get/master.zip"
+        >here</a
+      >.
+    </p>
+
+    <script>
+      setInterval(function () {
+        var imageElement = document.getElementById('map');
+        imageElement.src = 'map?' + new Date().getTime();
+      }, 1000);
+
+      document.getElementById('reset-button').addEventListener('click', () => {
+        fetch('/reset');
+      });
+
+      setInterval(function () {
+        var isItElement = document.getElementById('isIt').firstChild;
+        var winningElement = document.getElementById('winning').firstChild;
+        var playerListElement = document.getElementById('playerList');
+        var mapElement = document.getElementById('map');
+        var tagsElement = document.getElementById('tags');
+        var requestsElement = document.getElementById('requests');
+        var xhr = new XMLHttpRequest();
+        xhr.onload = function (data) {
+          var data = JSON.parse(data.target.response);
+          console.log(data);
+
+          var it = data.players.find((p) => p.is_it);
+          if (it) {
+            isItElement.textContent = it.name + ' is it!';
+          } else {
+            isItElement.textContent = 'No one is it';
+          }
+
+          if (data.stats.tags) {
+            tagsElement.textContent = data.stats.tags + ' tags so far!';
+          } else {
+            tagsElement.textContent = 'No tags yet';
+          }
+
+          if (data.stats.requests) {
+            requestsElement.textContent =
+              data.stats.requests + ' actions taken!';
+          } else {
+            requestsElement.textContent = 'No actions taken yet';
+          }
+
+          var winningText;
+          var winner = data.players.find((p) => !p.is_it);
+          if (winner) {
+            winningText = winner.name + ' is winning!';
+          } else if (data.players.length === 1) {
+            winningText = 'No one else is playing yet';
+          } else {
+            winningText = 'No one is playing';
+          }
+          winningElement.textContent = winningText;
+
+          while (playerListElement.firstChild) {
+            playerListElement.removeChild(playerListElement.firstChild);
+          }
+          data.players.forEach(function (item, index) {
+            var listItem = document.createElement('li');
+            listItem.innerText = item.name;
+            playerListElement.appendChild(listItem);
+          });
+
+          var cellWidth = Math.floor(500 / data.width);
+          var cellHeight = Math.floor(300 / data.height);
+          var map = '';
+          for (var y = 0; y < data.height; y++) {
+            map += '<div class="map-row">';
+            for (var x = 0; x < data.width; x++) {
+              var p = data.players.find((p) => p.x === x && p.y === y);
+              var pStyle = p ? (p.is_it ? 'red' : 'green') : 'grey';
+              map += `<div class="map-col" style="width: ${cellWidth}px; height: ${cellHeight}px; background: ${pStyle}"></div>`;
+            }
+            map += '</div>';
+          }
+          mapElement.innerHTML = map;
+        };
+        xhr.open('GET', '/stats');
+        xhr.send();
+      }, 300);
+    </script>
+  </body>
+</html>

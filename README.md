@@ -10,6 +10,7 @@ An implementation of [XOR Tag, built by Jon Turner](https://github.com/thepartic
     - [Looking](#looking)
     - [Not So Fast There](#not-so-fast-there)
     - [Quitting](#quitting)
+  - [Admin Routes](#admin-routes)
   - [Sample Code](#sample-code)
 
 ## About
@@ -95,6 +96,14 @@ Also, if your player is totally inactive for 5 minutes it will be removed from t
 ### Quitting
 
 Additionally, when you're all done playing tag, it would be nice of you to tell the others you're done so they don't keep chasing you. To quit, make an HTTP request to the following url: `http://localhost:3000/quit/{id}`.
+
+## Admin Routes
+
+There are a few administrative routes that players should not use:
+
+- `/` - an rules explanation and game watching page
+- `/stats` - some interesting stats about the game used on the watching page
+- `/reset` - resets the internal state of the tag game back to the start
 
 ## Sample Code
 
