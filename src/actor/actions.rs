@@ -27,12 +27,14 @@ pub async fn try_quit(client: &ApiClient, state: &mut Game) -> anyhow::Result<()
 pub async fn take_action(client: &ApiClient, state: &mut Game) -> anyhow::Result<()> {
     match determine_action(state) {
         Action::Register => {
+            // println!("registering");
             let new_state = client.register().await?;
             state.game = Some(new_state);
         }
         Action::Look => match &mut state.game {
             None => return Err(anyhow!("Cannot look before registering as a player")),
             Some(s) => {
+                // println!("looking");
                 let new_partial = client.look(s.id).await?;
                 s.inner = new_partial;
             }
@@ -40,6 +42,7 @@ pub async fn take_action(client: &ApiClient, state: &mut Game) -> anyhow::Result
         Action::Move(dir) => match &mut state.game {
             None => return Err(anyhow!("Cannot move before registering as a player")),
             Some(s) => {
+                // println!("moving {dir}");
                 let new_partial = client.mv(s.id, dir.clone()).await?;
                 s.inner = new_partial;
             }

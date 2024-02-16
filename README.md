@@ -12,6 +12,7 @@ An implementation of [XOR Tag, built by Jon Turner](https://github.com/thepartic
     - [Quitting](#quitting)
   - [Admin Routes](#admin-routes)
   - [Sample Code](#sample-code)
+  - [Roadmap](#roadmap)
 
 ## About
 
@@ -38,8 +39,8 @@ You interact with the game by making HTTP requests. Every request you make will 
         "y" : 11
     }],
     "x" : 23,
-    "y" : 14
-    "id" : "1000",
+    "y" : 14,
+    "id" : "1000"
 }
 ```
 
@@ -108,3 +109,8 @@ There are a few administrative routes that players should not use:
 ## Sample Code
 
 You can get some sample code on how to do all this in this repo or [the original one by Jon here](https://bitbucket.org/theparticleman/xortagsample).
+
+## Roadmap
+
+- [ ] Web Sockets
+- [ ] Args for TUI (# enemies, tick rates, stumbling, etc.)

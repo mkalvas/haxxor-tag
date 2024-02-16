@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct FullResponse {
     /// The id for your player.
     ///
@@ -43,7 +43,7 @@ impl FullResponse {
 /// Partial state to deserialize on updates. See `RegisterResult` for the full
 /// struct that includes this one as well as the stable fields such as `id`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
+#[serde(rename_all = "camelCase")]
 pub struct PartialResponse {
     /// Let's you know if you are it or not.
     ///

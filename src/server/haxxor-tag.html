@@ -312,7 +312,7 @@
       Moving and looking both count as actions. Registering does not count as an
       action. Any actions performed more frequently than
       <b>once per second</b> will be ignored. In this case an error
-      (specifically a 503 error) will be returned instead of a JSON object. So
+      (specifically a 429 error) will be returned instead of a JSON object. So
       your code will either need to not make requests too often or handle those
       errors.
     </p>
@@ -348,6 +348,7 @@
         var mapElement = document.getElementById('map');
         var tagsElement = document.getElementById('tags');
         var requestsElement = document.getElementById('requests');
+
         var xhr = new XMLHttpRequest();
         xhr.onload = function (data) {
           var data = JSON.parse(data.target.response);
@@ -407,6 +408,7 @@
           }
           mapElement.innerHTML = map;
         };
+
         xhr.open('GET', '/stats');
         xhr.send();
       }, 300);

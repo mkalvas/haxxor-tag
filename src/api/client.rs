@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use core::fmt;
 use serde::Deserialize;
 use std::time::Duration;
@@ -13,8 +14,17 @@ pub struct ApiClient {
 
 impl ApiClient {
     /// Make a call to any endpoint and parse a json response
-    pub async fn call<T: for<'de> Deserialize<'de>>(&self, url: &str) -> anyhow::Result<T> {
-        Ok(self.client.get(url).send().await?.json::<T>().await?)
+    pub async fn call<T: fmt::Debug + for<'de> Deserialize<'de>>(
+        &self,
+        url: &str,
+    ) -> anyhow::Result<T> {
+        let res = self.client.get(url).send().await?;
+        let res = res.json::<T>().await;
+        // println!("{res:#?}");
+        match res {
+            Ok(r) => Ok(r),
+            Err(e) => Err(anyhow!(e)),
+        }
     }
 
     /// This is the first step you'll need to do.
